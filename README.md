@@ -109,6 +109,12 @@ Questions to answer:
 - How does Hibernate order inserts into the entity tables and join table?
 - Does using `List`, `Set`, `@OneToMany`, or `@ManyToMany` change the observed behavior?
 
+Current observation:
+
+- With `@OneToMany` and `@JoinTable(inverseJoinColumns = @JoinColumn(unique = true))`, Hibernate generates the join table with `item_id` as the primary key.
+- Trying to add the same item to a second owner fails on `flush()` with Oracle `ORA-00001`.
+- If the database is manually corrupted by dropping that generated primary-key constraint and inserting duplicate join rows, Hibernate does not throw while reading the two owner collections. Each owner loads the same item through its own collection.
+
 ## Testing Approach
 
 Each experiment should have focused tests that:
@@ -148,9 +154,11 @@ Using a real database matters here because uniqueness violations are ultimately 
 
 The project currently contains the Spring Boot scaffold, Oracle Testcontainers setup, and a basic context-load test.
 
-The first experiment is implemented:
+Implemented experiments:
 
 - `UniqueEmailAccount` uses `@Column(unique = true)` on its `email` property.
 - `UniqueColumnAnnotationTests` inserts a duplicate email, forces a flush, and verifies that Hibernate reports a constraint violation backed by Oracle error `ORA-00001`.
+- `JoinUniqueOwner` uses a collection with a unique inverse join column.
+- `JoinTableUniqueJoinColumnTests` verifies both the write-time `ORA-00001` failure and the read-time behavior when the join table is manually corrupted.
 
-The next step is to add table-level, composite, database-only, and join-table uniqueness experiments.
+The next step is to add table-level, composite, and database-only uniqueness experiments.
