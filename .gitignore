@@ -1,0 +1,33 @@
+# Build output
+target/
+
+# Maven wrapper runtime files
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Docker Compose local overrides
+compose.override.yaml
+docker-compose.override.yml
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
