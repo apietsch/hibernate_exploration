@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import be.pengo.hibernate_exploration.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NonUniqueResultException;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = {
@@ -65,14 +66,34 @@ class JoinTableUniqueJoinColumnTests {
 
 	@Test
 	@DirtiesContext
+	void singleResultQueryThrowsWhenCorruptedJoinTableReturnsTwoOwnersForOneItem() {
+		ScenarioIds ids = createValidScenario();
+
+		addDuplicateJoinTableRowAfterDroppingGeneratedUniqueConstraint(ids);
+
+		Throwable thrown = catchThrowable(() -> transactionTemplate.execute(status -> {
+			entityManager.clear();
+
+			return entityManager.createQuery("""
+					select owner
+					from JoinUniqueOwner owner
+					join owner.items item
+					where item.id = :itemId
+					""", JoinUniqueOwner.class)
+				.setParameter("itemId", ids.sharedItemId())
+				.getSingleResult();
+		}));
+
+		assertThat(thrown).isInstanceOf(NonUniqueResultException.class);
+		assertThat(thrown).hasMessage("Query did not return a unique result: 2 results were returned");
+	}
+
+	@Test
+	@DirtiesContext
 	void corruptedJoinTableRowsAreNotDetectedWhenReadingTheCollections() {
 		ScenarioIds ids = createValidScenario();
 
-		dropGeneratedUniqueConstraintOnItemId();
-		jdbcTemplate.update(
-				"insert into owner_unique_items (owner_id, item_id) values (?, ?)",
-				ids.secondOwnerId(),
-				ids.sharedItemId());
+		addDuplicateJoinTableRowAfterDroppingGeneratedUniqueConstraint(ids);
 
 		ReadResult result = transactionTemplate.execute(status -> {
 			entityManager.clear();
@@ -94,6 +115,14 @@ class JoinTableUniqueJoinColumnTests {
 		assertThat(result.secondOwnerItemCount()).isEqualTo(1);
 		assertThat(result.firstOwnerItemId()).isEqualTo(ids.sharedItemId());
 		assertThat(result.secondOwnerItemId()).isEqualTo(ids.sharedItemId());
+	}
+
+	private void addDuplicateJoinTableRowAfterDroppingGeneratedUniqueConstraint(ScenarioIds ids) {
+		dropGeneratedUniqueConstraintOnItemId();
+		jdbcTemplate.update(
+				"insert into owner_unique_items (owner_id, item_id) values (?, ?)",
+				ids.secondOwnerId(),
+				ids.sharedItemId());
 	}
 
 	private ScenarioIds createValidScenario() {

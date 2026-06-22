@@ -114,6 +114,7 @@ Current observation:
 - With `@OneToMany` and `@JoinTable(inverseJoinColumns = @JoinColumn(unique = true))`, Hibernate generates the join table with `item_id` as the primary key.
 - Trying to add the same item to a second owner fails on `flush()` with Oracle `ORA-00001`.
 - If the database is manually corrupted by dropping that generated primary-key constraint and inserting duplicate join rows, Hibernate does not throw while reading the two owner collections. Each owner loads the same item through its own collection.
+- A query that assumes one owner for one item does fail when it uses `getSingleResult()`: Hibernate/Jakarta throws `NonUniqueResultException` with message `Query did not return a unique result: 2 results were returned`.
 
 ## Testing Approach
 
@@ -159,6 +160,6 @@ Implemented experiments:
 - `UniqueEmailAccount` uses `@Column(unique = true)` on its `email` property.
 - `UniqueColumnAnnotationTests` inserts a duplicate email, forces a flush, and verifies that Hibernate reports a constraint violation backed by Oracle error `ORA-00001`.
 - `JoinUniqueOwner` uses a collection with a unique inverse join column.
-- `JoinTableUniqueJoinColumnTests` verifies both the write-time `ORA-00001` failure and the read-time behavior when the join table is manually corrupted.
+- `JoinTableUniqueJoinColumnTests` verifies the write-time `ORA-00001` failure, the collection read-time behavior when the join table is manually corrupted, and the `NonUniqueResultException` produced by a single-result query over the corrupted join table.
 
 The next step is to add table-level, composite, and database-only uniqueness experiments.
