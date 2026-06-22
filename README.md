@@ -146,4 +146,11 @@ Using a real database matters here because uniqueness violations are ultimately 
 
 ## Current State
 
-The project currently contains the Spring Boot scaffold, Oracle Testcontainers setup, and a basic context-load test. The next step is to add small entities and tests for each uniqueness scenario above.
+The project currently contains the Spring Boot scaffold, Oracle Testcontainers setup, and a basic context-load test.
+
+The first experiment is implemented:
+
+- `UniqueEmailAccount` uses `@Column(unique = true)` on its `email` property.
+- `UniqueColumnAnnotationTests` inserts a duplicate email, forces a flush, and verifies that Hibernate reports a constraint violation backed by Oracle error `ORA-00001`.
+
+The next step is to add table-level, composite, database-only, and join-table uniqueness experiments.
